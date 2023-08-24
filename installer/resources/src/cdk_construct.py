@@ -243,13 +243,14 @@ class SOCAInstall(cdk.Stack):
         self.soca_resources["compute_node_sg"].add_egress_rule(ec2.Peer.ipv4("0.0.0.0/0"), ec2.Port.tcp_range(0, 65535), description="Allow all egress")
 
         # Ingress
+        https_listen_port_int = int(user_specified_variables.https_listen_port) 
         self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.ipv4(self.soca_resources["vpc"].vpc_cidr_block), ec2.Port.tcp_range(0, 65535), description="Allow all TCP traffic from VPC to scheduler")
         self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.ipv4(user_specified_variables.client_ip), ec2.Port.tcp(22), description="Allow SSH access from customer IP to scheduler")
-        self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.ipv4(user_specified_variables.client_ip), ec2.Port.tcp(443), description="Allow HTTPS access from customer IP to scheduler")
+        self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.ipv4(user_specified_variables.client_ip), ec2.Port.tcp(https_listen_port_int), description="Allow HTTPS access from customer IP to scheduler")
         self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.ipv4(user_specified_variables.client_ip), ec2.Port.tcp(80), description="Allow HTTP access from customer IP to scheduler")
         if user_specified_variables.prefix_list_id:
             self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.prefix_list(user_specified_variables.prefix_list_id), ec2.Port.tcp(22), description="Allow SSH access from customer IPs to scheduler")
-            self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.prefix_list(user_specified_variables.prefix_list_id), ec2.Port.tcp(443), description="Allow HTTPS access from customer IPs to scheduler")
+            self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.prefix_list(user_specified_variables.prefix_list_id), ec2.Port.tcp(https_listen_port_int), description="Allow HTTPS access from customer IPs to scheduler")
             self.soca_resources["scheduler_sg"].add_ingress_rule(ec2.Peer.prefix_list(user_specified_variables.prefix_list_id), ec2.Port.tcp(80), description="Allow HTTP access from customer IPs to scheduler")
         self.soca_resources["scheduler_sg"].add_ingress_rule(self.soca_resources["compute_node_sg"], ec2.Port.tcp_range(0, 65535), description="Allow all traffic from compute nodes to scheduler")
         self.soca_resources["scheduler_sg"].add_ingress_rule(self.soca_resources["scheduler_sg"], ec2.Port.tcp(8443), description="Allow ELB healthcheck to communicate with the UI")
@@ -934,7 +935,7 @@ class SOCAInstall(cdk.Stack):
                                                                    vpc=self.soca_resources["vpc"],
                                                                    internet_facing=True if install_props.Config.entry_points_subnets.lower() == "public" else False)
         # HTTP listener simply forward to HTTPS
-        https_listen_port = int(user_specified_variables.https_listen_port)
+        https_listen_port = user_specified_variables.https_listen_port
         self.soca_resources["alb"].add_listener("HTTPListener", port=80, open=False, protocol=elbv2.ApplicationProtocol.HTTP,
                                                 default_action=elbv2.ListenerAction(
                                                     action_json=elbv2.CfnListener.ActionProperty(
@@ -971,7 +972,7 @@ class SOCAInstall(cdk.Stack):
                                                        targets=[elbv2.CfnTargetGroup.TargetDescriptionProperty(id=self.soca_resources["scheduler_instance"].instance_id)],
                                                        health_check_path="/ping")
 
-        https_listener = elbv2.CfnListener(self, "HTTPSListener", port=https_listen_port, ssl_policy="ELBSecurityPolicy-2016-08",
+        https_listener = elbv2.CfnListener(self, "HTTPSListener", port=int(https_listen_port), ssl_policy="ELBSecurityPolicy-2016-08",
                                            load_balancer_arn=self.soca_resources["alb"].load_balancer_arn, protocol="HTTPS",
                                            certificates=[elbv2.CfnListener.CertificateProperty(certificate_arn=cert_custom_resource.get_att_string('ACMCertificateArn'))],
                                            default_actions=[elbv2.CfnListener.ActionProperty(
@@ -1001,12 +1002,15 @@ class SOCAInstall(cdk.Stack):
             es_load_balancer_listener_rule.node.add_dependency(https_listener)
             es_load_balancer_listener_rule.node.add_dependency(es_target_group)
 
+        hostPort = self.soca_resources['alb'].load_balancer_dns_name
+        if https_listen_port != '443':
+            hostPort = hostPort + ':' + https_listen_port
         if not user_specified_variables.es_endpoint:
-            core.CfnOutput(self, "AnalyticsDashboard", value=f"https://{self.soca_resources['alb'].load_balancer_dns_name}/_plugin/kibana/")
+            core.CfnOutput(self, "AnalyticsDashboard", value=f"https://{hostPort}/_plugin/kibana/")
         else:
             core.CfnOutput(self, "AnalyticsDashboard", value=f"https://{user_specified_variables.es_endpoint}/_plugin/kibana/")
 
-        core.CfnOutput(self, "WebUserInterface", value=f"https://{self.soca_resources['alb'].load_balancer_dns_name}/")
+        core.CfnOutput(self, "WebUserInterface", value=f"https://{hostPort}/")
 
 
 if __name__ == "__main__":

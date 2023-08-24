@@ -185,7 +185,7 @@ def delete_rule(rule_arn):
 def return_alb_listener(alb_arn):
     get_listener_arn = False
     for listener in elbv2_client.describe_listeners(LoadBalancerArn=alb_arn)['Listeners']:
-        if listener['Port'] == https_listen_port:
+        if listener['Port'] == int(https_listen_port):
             get_listener_arn = listener['ListenerArn']
     return get_listener_arn
 

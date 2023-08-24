@@ -267,7 +267,7 @@ class ListDesktops(Resource):
                         "tag_uuid": tag_uuid,
                         "support_hibernation": support_hibernation,
                         "session_schedule": session_schedule,
-                        "connection_string": f"{check_dcv_state}/?authToken={dcv_authentication_token}#{session_id}"}
+                        "connection_string": f"{check_dcv_uri}/?authToken={dcv_authentication_token}#{session_id}"}
 
                 #logger.info(user_sessions)
             except Exception as err:
