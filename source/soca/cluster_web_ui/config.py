@@ -119,7 +119,6 @@ class Config(object):
     }
     DCV_WINDOWS_AMI = {
         "graphics-amd": {
-            'cn-northwest-1': 'ami-08241c24821ae1209',
             'us-east-1': 'ami-09e9fc6b0563179e0',
             'ca-central-1': 'ami-02ce5abc7648ae028',
              'us-east-2': 'ami-0e9dffe211d55ea3d',
@@ -131,7 +130,6 @@ class Config(object):
         },
         "graphics": {
             # Nvidia
-            'cn-northwest-1': 'ami-08241c24821ae1209',
             'us-east-1': 'ami-0feb4b3151fb93b8e',
              'ca-central-1': 'ami-01a3418587fbf46cb',
              'us-east-2': 'ami-08dbaa5a7a0d66dd8',
@@ -150,7 +148,6 @@ class Config(object):
              'sa-east-1': 'ami-0c297587e3093aa24'
         },
         "non-graphics": {
-            'cn-northwest-1': 'ami-08241c24821ae1209',
              "us-east-1": "ami-0d9299304a5e3cfea",
              "ca-central-1": "ami-072dfac76bbba7a11",
              "us-east-2": "ami-08ad93b85eb93fc5c",
