@@ -488,7 +488,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action='store_const', const=True, default=False, help="Enable CDK debug mode")
     parser.add_argument("--cdk-cmd", type=str, choices=["deploy", "create", "update", "ls", "list", "synth", "synthesize", "destroy", "bootstrap"], default="deploy")
     parser.add_argument("--skip-config-message", action='store_const', const=True, default=False, help="Skip default_config message")
-    parser.add_argument("--https-listen-port", "hlp", type=int, default=8443, help="Https port to access SOCA web UI(eg:443)")
+    parser.add_argument("--https-listen-port", "-hlp", type=int, default=8443, help="Https port to access SOCA web UI(eg:443)")
     args = parser.parse_args()
 
     # Use script location as current working directory

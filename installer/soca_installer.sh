@@ -20,7 +20,7 @@ realpath() {
     [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
 }
 
-PYTHON=$(command -v python) # Change to custom Python3 if needed
+PYTHON=$(command -v python3) # Change to custom Python3 if needed
 INSTALLER_DIRECTORY=$(dirname $(realpath "$0"))
 QUIET_MODE="false" # change to "false" for more log
 PYTHON_VENV="$INSTALLER_DIRECTORY/resources/src/envs/venv-py-installer" # Python Virtual Environment. It's not recommended to change the value
