@@ -934,6 +934,7 @@ class SOCAInstall(cdk.Stack):
                                                                    vpc=self.soca_resources["vpc"],
                                                                    internet_facing=True if install_props.Config.entry_points_subnets.lower() == "public" else False)
         # HTTP listener simply forward to HTTPS
+        https_listen_port = int(user_specified_variables.https_listen_port)
         self.soca_resources["alb"].add_listener("HTTPListener", port=80, open=False, protocol=elbv2.ApplicationProtocol.HTTP,
                                                 default_action=elbv2.ListenerAction(
                                                     action_json=elbv2.CfnListener.ActionProperty(
@@ -941,7 +942,7 @@ class SOCAInstall(cdk.Stack):
                                                         redirect_config=elbv2.CfnListener.RedirectConfigProperty(
                                                             host="#{host}",
                                                             path="/#{path}",
-                                                            port=user_specified_variables.https_listen_port,
+                                                            port=https_listen_port,
                                                             protocol="HTTPS",
                                                             query="#{query}",
                                                             status_code="HTTP_301"))))
@@ -970,7 +971,7 @@ class SOCAInstall(cdk.Stack):
                                                        targets=[elbv2.CfnTargetGroup.TargetDescriptionProperty(id=self.soca_resources["scheduler_instance"].instance_id)],
                                                        health_check_path="/ping")
 
-        https_listener = elbv2.CfnListener(self, "HTTPSListener", port=user_specified_variables.https_listen_port, ssl_policy="ELBSecurityPolicy-2016-08",
+        https_listener = elbv2.CfnListener(self, "HTTPSListener", port=https_listen_port, ssl_policy="ELBSecurityPolicy-2016-08",
                                            load_balancer_arn=self.soca_resources["alb"].load_balancer_arn, protocol="HTTPS",
                                            certificates=[elbv2.CfnListener.CertificateProperty(certificate_arn=cert_custom_resource.get_att_string('ACMCertificateArn'))],
                                            default_actions=[elbv2.CfnListener.ActionProperty(
