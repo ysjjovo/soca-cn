@@ -25,5 +25,6 @@ dashboard = Blueprint('dashboard', __name__, template_folder='templates')
 @login_required
 def index():
     loadbalancer_dns_name = read_secretmanager.get_soca_configuration()['LoadBalancerDNSName']
-    kibana_url = "https://" + loadbalancer_dns_name + "/_plugin/kibana/"
+    https_listen_port = read_secretmanager.get_soca_configuration()['HttpsListenPort']
+    kibana_url = "https://" + loadbalancer_dns_name + f":{https_listen_port}/_plugin/kibana/"
     return render_template("dashboard.html", kibana_url=kibana_url)

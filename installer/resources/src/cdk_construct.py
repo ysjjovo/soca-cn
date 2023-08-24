@@ -789,7 +789,8 @@ class SOCAInstall(cdk.Stack):
                   "FileSystemDataProvider": install_props.Config.storage.data.provider if not user_specified_variables.fs_data_provider else user_specified_variables.fs_data_provider,
                   "FileSystemData": f"{self.soca_resources['fs_data'].ref}.{endpoints_suffix[install_props.Config.storage.data.provider]}" if not user_specified_variables.fs_data else f"{user_specified_variables.fs_data}.{endpoints_suffix[install_props.Config.storage.data.provider]}",
                   "FileSystemAppsProvider": install_props.Config.storage.apps.provider if not user_specified_variables.fs_apps_provider else user_specified_variables.fs_apps_provider,
-                  "FileSystemApps": f"{self.soca_resources['fs_apps'].ref}.{endpoints_suffix[install_props.Config.storage.apps.provider]}" if not user_specified_variables.fs_apps else f"{user_specified_variables.fs_apps}.{endpoints_suffix[install_props.Config.storage.apps.provider]}"
+                  "FileSystemApps": f"{self.soca_resources['fs_apps'].ref}.{endpoints_suffix[install_props.Config.storage.apps.provider]}" if not user_specified_variables.fs_apps else f"{user_specified_variables.fs_apps}.{endpoints_suffix[install_props.Config.storage.apps.provider]}",
+                  "HttpsListenPort": user_specified_variables.https_listen_port
                   }
 
         # ES configuration
@@ -940,7 +941,7 @@ class SOCAInstall(cdk.Stack):
                                                         redirect_config=elbv2.CfnListener.RedirectConfigProperty(
                                                             host="#{host}",
                                                             path="/#{path}",
-                                                            port="443",
+                                                            port=user_specified_variables.https_listen_port,
                                                             protocol="HTTPS",
                                                             query="#{query}",
                                                             status_code="HTTP_301"))))
@@ -969,7 +970,7 @@ class SOCAInstall(cdk.Stack):
                                                        targets=[elbv2.CfnTargetGroup.TargetDescriptionProperty(id=self.soca_resources["scheduler_instance"].instance_id)],
                                                        health_check_path="/ping")
 
-        https_listener = elbv2.CfnListener(self, "HTTPSListener", port=443, ssl_policy="ELBSecurityPolicy-2016-08",
+        https_listener = elbv2.CfnListener(self, "HTTPSListener", port=user_specified_variables.https_listen_port, ssl_policy="ELBSecurityPolicy-2016-08",
                                            load_balancer_arn=self.soca_resources["alb"].load_balancer_arn, protocol="HTTPS",
                                            certificates=[elbv2.CfnListener.CertificateProperty(certificate_arn=cert_custom_resource.get_att_string('ACMCertificateArn'))],
                                            default_actions=[elbv2.CfnListener.ActionProperty(
@@ -1056,6 +1057,7 @@ if __name__ == "__main__":
         "spotfleet_role_name": app.node.try_get_context("spotfleet_role_name"),
         "spotfleet_role_arn": app.node.try_get_context("spotfleet_role_arn"),
         "spotfleet_role_from_previous_soca_deployment": app.node.try_get_context("spotfleet_role_from_previous_soca_deployment"),
+        "https_listen_port": app.node.try_get_context("https_listen_port")
     }), object_hook=lambda d: SimpleNamespace(**d))
 
     # List of AWS endpoints & principals suffix

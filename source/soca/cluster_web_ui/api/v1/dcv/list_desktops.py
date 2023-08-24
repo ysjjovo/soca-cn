@@ -241,12 +241,13 @@ class ListDesktops(Resource):
                         session_info.session_state = "stopped"
                         db.session.commit()
 
+                check_dcv_uri = f"https://{read_secretmanager.get_soca_configuration()['LoadBalancerDNSName']}:{read_secretmanager.get_soca_configuration()['HttpsListenPort']}/{session_host_private_dns}/"
                 if session_state == "pending" and session_host_private_dns is not False:
-                    check_dcv_state = get(f"https://{read_secretmanager.get_soca_configuration()['LoadBalancerDNSName']}/{session_host_private_dns}/",
+                    check_dcv_state = get(check_dcv_uri,
                                           allow_redirects=False,
                                           verify=False)  # nosec
 
-                    logger.info("Checking {} for {} and received status {} ".format('https://' + read_secretmanager.get_soca_configuration()['LoadBalancerDNSName'] + '/' + session_host_private_dns + '/',
+                    logger.info("Checking {} for {} and received status {} ".format(check_dcv_uri,
                             session_info,
                             check_dcv_state.status_code))
 
@@ -255,7 +256,7 @@ class ListDesktops(Resource):
                         db.session.commit()
 
                 user_sessions[session_number] = {
-                        "url": f"https://{read_secretmanager.get_soca_configuration()['LoadBalancerDNSName']}/{session_host_private_dns}/",
+                        "url": check_dcv_uri,
                         "session_local_admin_password": session_local_admin_password,
                         "session_state": session_state,
                         "session_authentication_token": dcv_authentication_token,
@@ -266,7 +267,7 @@ class ListDesktops(Resource):
                         "tag_uuid": tag_uuid,
                         "support_hibernation": support_hibernation,
                         "session_schedule": session_schedule,
-                        "connection_string": f"https://{read_secretmanager.get_soca_configuration()['LoadBalancerDNSName']}/{session_host_private_dns}/?authToken={dcv_authentication_token}#{session_id}"}
+                        "connection_string": f"{check_dcv_state}/?authToken={dcv_authentication_token}#{session_id}"}
 
                 #logger.info(user_sessions)
             except Exception as err:

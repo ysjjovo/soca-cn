@@ -385,6 +385,7 @@ def get_install_parameters():
 
             compute_node_role = FindExistingResource(install_parameters["region"],
                                                      install_parameters["client_ip"]).get_iam_roles("compute nodes",
+                                                                                                       
                                                                                                     selected_roles=[install_parameters["scheduler_role_name"]])
             if compute_node_role["success"] is True:
                 install_parameters["compute_node_role_name"] = compute_node_role["message"]["name"]
@@ -400,7 +401,7 @@ def get_install_parameters():
 
             spotfleet_role = FindExistingResource(install_parameters["region"],
                                                   install_parameters["client_ip"]).get_iam_roles("spot fleet",
-                                                                                                 selected_roles=[install_parameters["scheduler_role_name"], install_parameters["compute_node_role_name"]])
+                                                   selected_roles=[install_parameters["scheduler_role_name"], install_parameters["compute_node_role_name"]])
             if spotfleet_role["success"] is True:
                 install_parameters["spotfleet_role_name"] = spotfleet_role["message"]["name"]
                 install_parameters["spotfleet_role_arn"] = spotfleet_role["message"]["arn"]
@@ -487,7 +488,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action='store_const', const=True, default=False, help="Enable CDK debug mode")
     parser.add_argument("--cdk-cmd", type=str, choices=["deploy", "create", "update", "ls", "list", "synth", "synthesize", "destroy", "bootstrap"], default="deploy")
     parser.add_argument("--skip-config-message", action='store_const', const=True, default=False, help="Skip default_config message")
-
+    parser.add_argument("--https-listen-port", "hlp", type=int, default=8443, help="Https port to access SOCA web UI(eg:443)")
     args = parser.parse_args()
 
     # Use script location as current working directory
@@ -521,7 +522,7 @@ if __name__ == "__main__":
         9: "Do you want to create new filesystems for /apps & /data (default) or use existing ones? ",
         10: "Do you want to create a new Directory Service Managed AD (default) or use an existing one? ",
         11: "Do you want to create a new ElasticSearch (default) or use an existing one?",
-        12: "Do you want to create new IAM roles for scheduler & compute nodes (default) or use existing ones?"
+        12: "Do you want to create new IAM roles for scheduler & compute nodes (default) or use existing ones?",
     }
     total_install_phases = len(install_phases)
     install_parameters = {
@@ -569,6 +570,7 @@ if __name__ == "__main__":
         "spotfleet_role_from_previous_soca_deployment": None,
         # ElasticSearch
         "es_domain": None,
+        "https_listen_port": None,
     }
     print("\n====== Validating Default SOCA Configuration ======\n")
     install_props = json.loads(json.dumps(get_install_properties(args.config)), object_hook=lambda d: SimpleNamespace(**d))
@@ -630,10 +632,11 @@ if __name__ == "__main__":
 
     # Automatically detect client ip if needed
     if not args.client_ip:
-        install_parameters["client_ip"] = detect_customer_ip()
-        print(f"{fg('yellow')}We determined your IP is {install_parameters['client_ip']}. You can change it later if you are running behind a proxy{attr('reset')}")
-        if install_parameters["client_ip"] is False:
-            install_parameters["client_ip"] = get_input("Client IP authorized to access SOCA on port 443/22", args.client_ip, None, str)
+        install_parameters["client_ip"] = get_input("Client IP authorized to access SOCA on port 443/22", args.client_ip, None, str)
+        # install_parameters["client_ip"] = detect_customer_ip()
+        # print(f"{fg('yellow')}We determined your IP is {install_parameters['client_ip']}. You can change it later if you are running behind a proxy{attr('reset')}")
+        # if install_parameters["client_ip"] is False:
+        #     install_parameters["client_ip"] = get_input("Client IP authorized to access SOCA on port 443/22", args.client_ip, None, str)
     else:
         install_parameters["client_ip"] = args.client_ip
 
@@ -643,7 +646,7 @@ if __name__ == "__main__":
         if "/" not in install_parameters["client_ip"]:
             print(f"{fg('yellow')}No subnet defined for your IP. Adding /32 at the end of {install_parameters['client_ip']}{attr('reset')}")
             client_ip = f"{install_parameters['client_ip']}/32"
-
+    install_parameters["https_listen_port"] = args.https_listen_port
     # Get SOCA parameters
     get_install_parameters()
 

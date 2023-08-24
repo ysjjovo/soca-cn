@@ -185,7 +185,7 @@ def delete_rule(rule_arn):
 def return_alb_listener(alb_arn):
     get_listener_arn = False
     for listener in elbv2_client.describe_listeners(LoadBalancerArn=alb_arn)['Listeners']:
-        if listener['Port'] == 443:
+        if listener['Port'] == https_listen_port:
             get_listener_arn = listener['ListenerArn']
     return get_listener_arn
 
@@ -195,6 +195,7 @@ if __name__ == "__main__":
     cluster_id = soca_configuration['ClusterId']
     vpc_id = soca_configuration['VpcId']
     alb_arn = soca_configuration['LoadBalancerArn']
+    https_listen_port = soca_configuration['HttpsListenPort']
     elbv2_client = boto3.client('elbv2', config=configuration.boto_extra_config())
     ec2_client = boto3.client('ec2', config=configuration.boto_extra_config())
     dcv_queues = ['desktop']
