@@ -3,13 +3,6 @@ Description: (SO0072) Scale-Out Computing on AWS (v2.7.2)
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
-      -
-        Label:
-            default: Install Location
-        Parameters:
-          - S3InstallBucket
-          - S3InstallFolder
-
       - Label:
           default: Linux Distribution
         Parameters:
@@ -40,10 +33,6 @@ Metadata:
         default: What's your SSH keypair?
       BaseOS:
         default: Linux Distro
-      S3InstallBucket:
-        default: S3 bucket with your SOCA installer
-      S3InstallFolder:
-        default: S3 folder where you uploaded the SOCA files
       SchedulerInstanceType:
         default: Instance type for your scheduler host
       UserName:
@@ -52,6 +41,10 @@ Metadata:
         default: Password for your default LDAP user
 
 Parameters:
+  TemplateBaseURL:
+    Type: String
+    Default: "https://raw.githubusercontent.com/ysjjovo/soca-cn/main"
+
   CustomAMI:
     Type: String
     Description: If you use your own AMI, you still have to specify the base os (see above)
@@ -90,7 +83,7 @@ Parameters:
 
   S3InstallBucket:
     Type: String
-    Default: "solutions-reference"
+    Default: "solutions-reference-ultrapower"
     Description: Name of your S3 Bucket where you uploaded your install files
     AllowedPattern: '(?=^.{3,63}$)(?!^(\d+\.)+\d+$)(^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$)'
     ConstraintDescription: You must specify the bucket NAME only (no s3:// or https://bucket.s3.amazonaws.com)
@@ -123,13 +116,21 @@ Mappings:
       ClusterIdPrefix: soca
       Version: v2.7.2
     User:
-      centos7: centos
+      centos7: ec2-user
       amazonlinux2: ec2-user
       rhel7: ec2-user
 
 
 
   RegionMap:
+    cn-north-1: # Beijing
+      amazonlinux2: ami-0c52e2685c7218558
+      centos7: ami-088b61f50b18f807e
+      rhel7: ami-0aec480c46b22c341
+    cn-northwest-1: # Ningxia
+      amazonlinux2: ami-0b6ea802f7ef3bcdb
+      centos7: ami-0d8487330873f710c
+      rhel7: ami-05d1efb0d288aa5ed
     af-south-1:
       amazonlinux2: ami-073f101842e8ceae7
       centos7: ami-0b761332115c38669
@@ -363,7 +364,7 @@ Resources:
         ClusterId: !GetAtt CheckSOCAPreRequisite.ClusterId
         PublicSubnetMaskBits: !GetAtt CheckSOCAPreRequisite.PublicSubnetMaskBits
         PrivateSubnetMaskBits: !GetAtt CheckSOCAPreRequisite.PrivateSubnetMaskBits
-      TemplateURL: !Join [ "/", [!Sub "https://s3.${AWS::URLSuffix}", !Ref S3InstallBucket, !Ref S3InstallFolder, "templates/Network.template"] ]
+      TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Network.template"] ]
 
   Security:
     DependsOn: Network
@@ -373,13 +374,11 @@ Resources:
         VpcId: !GetAtt Network.Outputs.VpcId
         ClientIp: !Ref ClientIp
         ClusterId: !GetAtt CheckSOCAPreRequisite.ClusterId
-        S3InstallBucket: !Ref S3InstallBucket
-        S3InstallFolder: !Ref S3InstallFolder
         SchedulerPublicIP: !GetAtt Network.Outputs.SchedulerPublicIP
         EIPNat: !GetAtt Network.Outputs.EIPNat
         CreateESServiceRole: !GetAtt CheckSOCAPreRequisite.CreateESServiceRole
 
-      TemplateURL: !Join [ "/", [!Sub "https://s3.${AWS::URLSuffix}", !Ref S3InstallBucket, !Ref S3InstallFolder, "templates/Security.template"] ]
+      TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Security.template"] ]
       TimeoutInMinutes: 30
 
   Storage:
@@ -394,7 +393,7 @@ Resources:
         PrivateSubnet2: !GetAtt Network.Outputs.PrivateSubnet2
         PrivateSubnet3: !GetAtt Network.Outputs.PrivateSubnet3
         ClusterId: !Join [ "-", [ !FindInMap [ Info, Data, ClusterIdPrefix ], !Ref "AWS::StackName"] ]
-      TemplateURL: !Join [ "/", [!Sub "https://s3.${AWS::URLSuffix}", !Ref S3InstallBucket, !Ref S3InstallFolder, "templates/Storage.template"] ]
+      TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Storage.template"] ]
       TimeoutInMinutes: 30
 
   Scheduler:
@@ -418,7 +417,7 @@ Resources:
         UserName: !Ref UserName
         UserPassword: !Ref UserPassword
         SchedulerPublicIP: !GetAtt Network.Outputs.SchedulerPublicIP
-      TemplateURL: !Join [ "/", [!Sub "https://s3.${AWS::URLSuffix}", !Ref S3InstallBucket, !Ref S3InstallFolder, "templates/Scheduler.template"] ]
+      TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Scheduler.template"] ]
       TimeoutInMinutes: 60
 
   Analytics:
@@ -432,7 +431,7 @@ Resources:
         PrivateSubnet2: !GetAtt Network.Outputs.PrivateSubnet2
         ClusterId: !GetAtt CheckSOCAPreRequisite.ClusterId
 
-      TemplateURL: !Join [ "/", [!Sub "https://s3.${AWS::URLSuffix}", !Ref S3InstallBucket, !Ref S3InstallFolder, "templates/Analytics.template"] ]
+      TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Analytics.template"] ]
       TimeoutInMinutes: 30
 
   Viewer:
@@ -452,7 +451,7 @@ Resources:
         SchedulerIAMRole: !GetAtt Security.Outputs.SchedulerIAMRole
         LambdaACMIAMRoleArn: !GetAtt Security.Outputs.LambdaACMIAMRoleArn
         ESDomainIPAddresses: !GetAtt Analytics.Outputs.ESDomainIPAddresses
-      TemplateURL: !Join [ "/", [!Sub "https://s3.${AWS::URLSuffix}", !Ref S3InstallBucket, !Ref S3InstallFolder, "templates/Viewer.template"] ]
+      TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Viewer.template"] ]
       TimeoutInMinutes: 30
 
 
@@ -494,7 +493,7 @@ Resources:
         BaseOS: !Ref BaseOS
         SolutionMetricsRoleArn: !GetAtt Security.Outputs.SolutionMetricsRoleArn
         DefaultMetricCollection: !FindInMap [ Send, AnonymousUsage, Data ]
-      TemplateURL: !Join [ "/", [!Sub "https://s3.${AWS::URLSuffix}", !Ref S3InstallBucket, !Ref S3InstallFolder, "templates/Configuration.template"] ]
+      TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Configuration.template"] ]
       TimeoutInMinutes: 60
 
 Outputs:

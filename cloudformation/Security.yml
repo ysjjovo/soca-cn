@@ -24,6 +24,9 @@ Parameters:
 
   CreateESServiceRole:
     Type: String
+  ChinaURLSuffix:
+    Type: String
+    Default: amazonaws.com
 
 Conditions:
   CreateESServiceRoleCondition: !Equals [!Ref 'CreateESServiceRole', 'True']
@@ -209,7 +212,7 @@ Resources:
             Principal:
               Service:
                 - !Sub "ec2.${AWS::URLSuffix}"
-                - !Sub "ssm.${AWS::URLSuffix}"
+                - !Sub "ssm.${ChinaURLSuffix}"
             Action:
               - sts:AssumeRole
       ManagedPolicyArns:
@@ -284,7 +287,7 @@ Resources:
           - Effect: Allow
             Principal:
               Service:
-                - !Sub "spotfleet.${AWS::URLSuffix}"
+                - !Sub "spotfleet.${ChinaURLSuffix}"
             Action:
               - sts:AssumeRole
       ManagedPolicyArns:
@@ -338,7 +341,7 @@ Resources:
             Principal:
               Service:
                 - !Sub "ec2.${AWS::URLSuffix}"
-                - !Sub "ssm.${AWS::URLSuffix}"
+                - !Sub "ssm.${ChinaURLSuffix}"
             Action:
               - sts:AssumeRole
       ManagedPolicyArns:
