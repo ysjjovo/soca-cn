@@ -377,6 +377,7 @@ Resources:
         SchedulerPublicIP: !GetAtt Network.Outputs.SchedulerPublicIP
         EIPNat: !GetAtt Network.Outputs.EIPNat
         CreateESServiceRole: !GetAtt CheckSOCAPreRequisite.CreateESServiceRole
+        TemplateBaseURL: !Ref TemplateBaseURL
 
       TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Security.template"] ]
       TimeoutInMinutes: 30
@@ -406,8 +407,6 @@ Resources:
         SubnetId: !GetAtt Network.Outputs.PublicSubnet1
         SecurityGroupId: !GetAtt Security.Outputs.SchedulerSecurityGroup
         SchedulerIAMInstanceProfile: !GetAtt Security.Outputs.SchedulerIAMInstanceProfile
-        S3InstallFolder: !Ref S3InstallFolder
-        S3Bucket: !Ref S3InstallBucket
         Version: !FindInMap [ Info, Data, Version ]
         ClusterId: !GetAtt CheckSOCAPreRequisite.ClusterId
         EFSDataDns: !GetAtt Storage.Outputs.EFSDataDns
@@ -417,6 +416,8 @@ Resources:
         UserName: !Ref UserName
         UserPassword: !Ref UserPassword
         SchedulerPublicIP: !GetAtt Network.Outputs.SchedulerPublicIP
+        TemplateBaseURL: !Ref TemplateBaseURL
+
       TemplateURL: !Join [ "/", [!Sub "${TemplateBaseURL}", "Scheduler.template"] ]
       TimeoutInMinutes: 60
 

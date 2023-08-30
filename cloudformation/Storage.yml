@@ -29,7 +29,9 @@ Parameters:
   EFSBurstCreditHighThreshold:
     Type: String
     Default: 2000000000000
-
+  ChinaURLSuffix:
+    Type: String
+    Default: amazonaws.com
 Resources:
   EFSApps:
     Type: AWS::EFS::FileSystem
@@ -150,7 +152,7 @@ Resources:
             Resource: !Ref SNSEFSTopic
             Principal:
               Service:
-                - !Sub "cloudwatch.${AWS::URLSuffix}"
+                - !Sub "cloudwatch.${ChinaURLSuffix}"
             Condition:
               ArnLike:
                 AWS:SourceArn: !Sub 'arn:${AWS::Partition}:*:*:${AWS::AccountId}:*'
@@ -331,13 +333,13 @@ Outputs:
     Value: !Ref EFSApps
 
   EFSAppsDns:
-    Value: !Join [ ".", [!Ref EFSApps, 'efs', !Ref "AWS::Region" , !Ref "AWS::URLSuffix"] ]
+    Value: !Join [ ".", [!Ref EFSApps, 'efs', !Ref "AWS::Region" , !Ref "ChinaURLSuffix"] ]
 
   EFSData:
     Value: !Ref EFSData
 
   EFSDataDns:
-    Value: !Join [ ".", [ !Ref EFSData, 'efs', !Ref "AWS::Region", !Ref "AWS::URLSuffix"] ]
+    Value: !Join [ ".", [ !Ref EFSData, 'efs', !Ref "AWS::Region", !Ref "ChinaURLSuffix"] ]
 
   EFSMountParameters:
      Value: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'

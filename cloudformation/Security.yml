@@ -27,7 +27,8 @@ Parameters:
   ChinaURLSuffix:
     Type: String
     Default: amazonaws.com
-
+  TemplateBaseURL:
+    Type: String
 Conditions:
   CreateESServiceRoleCondition: !Equals [!Ref 'CreateESServiceRole', 'True']
 
@@ -222,14 +223,6 @@ Resources:
           PolicyDocument:
             Version: 2012-10-17
             Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                  - s3:PutObject
-                Resource:
-                  - !Join [ "", [ "arn:", !Ref "AWS::Partition", ":s3:::", !Ref S3InstallBucket , "/*" ] ]
-                  - !Join [ "", [ "arn:", !Ref "AWS::Partition", ":s3:::", !Ref S3InstallBucket] ]
               - Effect: Allow
                 Action:
                   - s3:GetObject
@@ -429,7 +422,7 @@ Resources:
                 Resource: "*"
                 Condition:
                   "ForAllValues:StringEquals":
-                    "cloudformation:TemplateURL": !Sub "https://s3.{AWS::URLSuffix}/${S3InstallBucket}/${S3InstallFolder}/templates/ComputeNode.template"
+                    "cloudformation:TemplateURL": !Sub "${TemplateBaseURL}/ComputeNode.template"
 
               - Effect: Allow
                 Action:
@@ -529,15 +522,6 @@ Resources:
 
               - Effect: Allow
                 Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                  - s3:PutObject
-                Resource:
-                  - !Join [ "", [ "arn:", !Ref "AWS::Partition", ":s3:::", !Ref S3InstallBucket , "/*" ] ]
-                  - !Join [ "", [ "arn:", !Ref "AWS::Partition", ":s3:::", !Ref S3InstallBucket] ]
-
-              - Effect: Allow
-                Action:
                   - iam:PassRole
                   - iam:CreateServiceLinkedRole
                 Resource:
@@ -607,7 +591,7 @@ Resources:
           - Effect: Allow
             Principal:
               Service:
-                - !Sub lambda.${AWS::URLSuffix}
+                - !Sub lambda.${ChinaURLSuffix}
             Action:
               - sts:AssumeRole
 

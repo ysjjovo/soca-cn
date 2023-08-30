@@ -17,12 +17,6 @@ Parameters:
   SchedulerIAMInstanceProfile:
     Type: String
 
-  S3InstallFolder:
-    Type: String
-
-  S3Bucket:
-    Type: String
-
   ClusterId:
     Type: String
 
@@ -49,6 +43,8 @@ Parameters:
 
   SchedulerPublicIP:
     Type: String
+  TemplateBaseURL:
+    Type: String
 
 Conditions:
   UseAmazonLinux: !Equals [ !Ref BaseOS, 'amazonlinux2']
@@ -65,7 +61,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: !If [UseAmazonLinux, "/dev/xvda", "/dev/sda1"]
           Ebs:
-            VolumeSize: 150
+            VolumeSize: 20
             VolumeType: gp3
             Encrypted: true
 
@@ -89,6 +85,8 @@ Resources:
           "Fn::Base64": !Sub |
             #!/bin/bash -xe
 
+            PIP_CHINA_MIRROR="https://opentuna.cn/pypi/web/simple"
+            CENTOS_CHINA_REPO="https://soca-china-deployment.s3.cn-northwest-1.amazonaws.com.cn/scale-out-computing-on-aws/v2.7.0/CentOS-Base-china.repo"
             export PATH=$PATH:/usr/local/bin
             # Deactivate shell to make sure users won't access the cluster if it's not ready
             echo '
@@ -105,7 +103,16 @@ Resources:
 
             if [ "${BaseOS}" == "centos7" ];
               then
-                usermod --shell /usr/sbin/nologin centos
+                  if [[ "$AWS_REGION" == "cn-north-1" ]] || [[ "$AWS_REGION" == "cn-northwest-1" ]]; then
+                    # Install SSM
+                    yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+                    systemctl enable amazon-ssm-agent
+                    systemctl restart amazon-ssm-agent
+                    usermod --shell /usr/sbin/nologin ec2-user
+                    curl -o /etc/yum.repos.d/CentOS-Base.repo $CENTOS_CHINA_REPO
+                  else
+                    usermod --shell /usr/sbin/nologin centos
+                  fi
             fi
 
             # Install awscli
@@ -113,7 +120,7 @@ Resources:
             then
               yum install -y python3-pip
               PIP=$(which pip3)
-              $PIP install awscli
+              $PIP install -i ${PIP_CHINA_MIRROR} awscli
               export PATH=$PATH:/usr/local/bin
             fi
 
@@ -129,12 +136,11 @@ Resources:
             echo export "SOCA_BASE_OS=${BaseOS}" >> /etc/environment
             echo export "SOCA_CONFIGURATION=${ClusterId}" >> /etc/environment
             echo export "AWS_DEFAULT_REGION=${AWS::Region}" >> /etc/environment
-            echo export "SOCA_INSTALL_BUCKET=${S3Bucket}" >> /etc/environment
-            echo export "SOCA_INSTALL_BUCKET_FOLDER=${S3InstallFolder}" >> /etc/environment
             echo export "SOCA_VERSION=${Version}" >> /etc/environment
             echo export "SOCA_INSTALL_AMI=${ImageId}" >> /etc/environment
             echo export "SOCA_AUTH_PROVIDER=openldap" >> /etc/environment
             echo export "SOCA_LDAP_BASE=\"DC=soca,DC=local\"" >> /etc/environment
+            echo export "CodeUrlBase=${TemplateBaseURL}" >> /etc/environment
             source /etc/environment
 
             # Tag EBS disks manually as CFN ASG does not support it
@@ -148,13 +154,10 @@ Resources:
             ENI_IDS=$(aws ec2 describe-network-interfaces --filters Name=attachment.instance-id,Values="$AWS_INSTANCE_ID" --region $AWS_REGION --query "NetworkInterfaces[*].[NetworkInterfaceId]" --out text | tr "\n" " ")
             $AWS ec2 create-tags --resources $ENI_IDS --region $AWS_REGION --tags Key=Name,Value="${ClusterId} Scheduler Network Adapter" "Key=soca:ClusterId,Value=${ClusterId}"
 
-            AWS=$(which aws)
-            S3_BUCKET_REGION=$(curl -s --head ${S3Bucket}.s3.amazonaws.com | grep bucket-region | awk '{print $2}' | tr -d '\r\n')
-            REGION_OPT="--region $S3_BUCKET_REGION"
-            echo "@reboot $AWS $REGION_OPT s3 cp s3://${S3Bucket}/${S3InstallFolder}/scripts/SchedulerPostReboot.sh /root && /bin/bash /root/SchedulerPostReboot.sh ${S3Bucket} ${S3InstallFolder} ${UserName} '${UserPassword}' >> /root/PostRebootConfig.log 2>&1" | crontab -
-            $AWS $REGION_OPT s3 cp s3://${S3Bucket}/${S3InstallFolder}/scripts/config.cfg /root/
-            $AWS $REGION_OPT s3 cp s3://${S3Bucket}/${S3InstallFolder}/scripts/requirements.txt /root/
-            $AWS $REGION_OPT s3 cp s3://${S3Bucket}/${S3InstallFolder}/scripts/Scheduler.sh /root/
+            echo "@reboot wget ${TemplateURL}/source/scripts/SchedulerPostReboot.sh -P /root && /bin/bash /root/SchedulerPostReboot.sh ${TemplateURL} ${UserName} '${UserPassword}' >> /root/PostRebootConfig.log 2>&1" | crontab -
+            wget ${TemplateURL}/source/scripts/config_china.cfg -P /root/config.cfg
+            wget ${TemplateURL}/source/scripts/requirements.txt -P /root/
+            wget ${TemplateURL}/source/scripts/Scheduler.sh -P /root/
             /bin/bash /root/Scheduler.sh efs ${EFSDataDns} efs ${EFSAppsDns} >> /root/Scheduler.sh.log 2>&1
 
   EIPAssociationToScheduler:
