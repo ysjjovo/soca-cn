@@ -43,8 +43,8 @@ function get_secret {
 crontab -r
 
 # Retrieve SOCA configuration under soca.tar.gz and extract it on /apps/
-# $AWS s3 cp s3://$SOCA_INSTALL_BUCKET/$SOCA_INSTALL_BUCKET_FOLDER/soca.tar.gz /root
-wget ${CodeUrlBase}/soca.tar.gz -P /root
+$AWS s3 cp s3://$SOCA_INSTALL_BUCKET/$SOCA_INSTALL_BUCKET_FOLDER/soca.tar.gz /root
+# wget ${CodeUrlBase}/soca.tar.gz -P /root
 mkdir -p /apps/soca/$SOCA_CONFIGURATION
 tar -xvf /root/soca.tar.gz -C /apps/soca/$SOCA_CONFIGURATION --no-same-owner
 cp /root/config.cfg /apps/soca/$SOCA_CONFIGURATION/cluster_node_bootstrap/config.cfg
